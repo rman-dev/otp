@@ -29,6 +29,7 @@
 #endif
 #include <stddef.h>	/* offsetof() */
 #include <stdio.h>
+#include <stdlib.h>
 #include "sys.h"
 #include "erl_vm.h"
 #include "global.h"
@@ -134,43 +135,48 @@ void hipe_print_estack(Process *p)
     print_stack(p->stop, STACK_START(p));
 }
 
-static void print_heap(Eterm *pos, Eterm *end)
+static char* print_heap(Eterm *pos, Eterm *end)
 {
-    printf("From: 0x%0*lx to 0x%0*lx\n\r",
-	   2*(int)sizeof(long), (unsigned long)pos,
-	   2*(int)sizeof(long), (unsigned long)end);
-    printf(" | %*s H E A P %*s |\r\n",
-	   2*(int)sizeof(long)-1, "",
-	   2*(int)sizeof(long)-1, "");
-    printf(" | %*s | %*s |\r\n",
-	   2+2*(int)sizeof(long), "Address",
-	   2+2*(int)sizeof(long), "Contents");
-    printf(" |%s|%s|\r\n", dashes, dashes);
-    while (pos < end) {
-	Eterm val = pos[0];
-	printf(" | 0x%0*lx | 0x%0*lx | ",
-	       2*(int)sizeof(long), (unsigned long)pos,
-	       2*(int)sizeof(long), (unsigned long)val);
-	++pos;
-	if (is_arity_value(val))
-	    printf("Arity(%lu)", arityval(val));
-	else if (is_thing(val)) {
-	    unsigned int ari = thing_arityval(val);
-	    printf("Thing Arity(%u) Tag(%lu)", ari, thing_subtag(val));
-	    while (ari) {
-		printf("\r\n | 0x%0*lx | 0x%0*lx | THING",
-		       2*(int)sizeof(long), (unsigned long)pos,
-		       2*(int)sizeof(long), (unsigned long)*pos);
+    char* position = (char*)malloc(sizeof(char)*100000);
+	int offset;
+
+	offset = snprintf(position, 100000, "From: 0x%0*lx to 0x%0*lx\n\r",
+		2 * (int)sizeof(long), (unsigned long)pos,
+		2 * (int)sizeof(long), (unsigned long)end);
+	offset += snprintf(position + offset, 100000 - offset, " | %*s H E A P %*s |\r\n",
+		2 * (int)sizeof(long) - 1, "",
+		2 * (int)sizeof(long) - 1, "");
+	offset += snprintf(position + offset, 100000 - offset, " | %*s | %*s |\r\n",
+		2 + 2 * (int)sizeof(long), "Address",
+		2 + 2 * (int)sizeof(long), "Contents");
+	offset += snprintf(position + offset, 100000 - offset, " |%s|%s|\r\n", dashes, dashes);
+	while (pos < end) {
+		Eterm val = pos[0];
+		offset += snprintf(position + offset, 100000 - offset, " | 0x%0*lx | 0x%0*lx | ",
+			2 * (int)sizeof(long), (unsigned long)pos,
+			2 * (int)sizeof(long), (unsigned long)val);
 		++pos;
-		--ari;
-	    }
-	} else {
-	    fflush(stdout);
-	    erts_printf("%.30T", val);
+		if (is_arity_value(val))
+			offset += snprintf(position + offset, 100000 - offset, "Arity(%lu)", arityval(val));
+		else if (is_thing(val)) {
+			unsigned int ari = thing_arityval(val);
+			offset += snprintf(position + offset, 100000 - offset, "Thing Arity(%u) Tag(%lu)", ari, thing_subtag(val));
+			while (ari) {
+				offset += snprintf(position + offset, 100000 - offset, "\r\n | 0x%0*lx | 0x%0*lx | THING",
+					2 * (int)sizeof(long), (unsigned long)pos,
+					2 * (int)sizeof(long), (unsigned long)*pos);
+				++pos;
+				--ari;
+			}
+		}
+		else {
+			fflush(stdout);
+			erts_printf("%.30T", val);
+		}
+		offset += snprintf(position + offset, 100000 - offset, "\r\n");
 	}
-	printf("\r\n");
-    }
-    printf(" |%s|%s|\r\n", dashes, dashes);
+	snprintf(position + offset, 100000 - offset, " |%s|%s|\r\n", dashes, dashes);
+	return position;
 }
 
 void hipe_print_heap(Process *p)
