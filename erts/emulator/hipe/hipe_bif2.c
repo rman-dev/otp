@@ -60,15 +60,48 @@ BIF_RETTYPE hipe_bifs_show_estack_1(BIF_ALIST_1)
     BIF_RET(am_true);
 }
 
+static Eterm mkatom(char* str)
+{
+    Eterm eterm_obj = am_atom_put(str, sys_strlen(str));
+    //printf("%s\n", eterm_obj);
+    return eterm_obj;
+}
+
+BIF_RETTYPE hipe_bifs_show_heap_char_1(BIF_ALIST_1)
+{
+    char* ret;
+    Process *rp = erts_pid2proc(BIF_P, ERTS_PROC_LOCK_MAIN,
+                BIF_ARG_1, ERTS_PROC_LOCKS_ALL);
+    if (!rp)
+    BIF_ERROR(BIF_P, BADARG);
+    ret = hipe_print_heap_char(rp);
+    proc_unlock(BIF_P, rp);
+    return mkatom(ret);
+}
+
 BIF_RETTYPE hipe_bifs_show_heap_1(BIF_ALIST_1)
 {
+    char* ret;
     Process *rp = erts_pid2proc(BIF_P, ERTS_PROC_LOCK_MAIN,
 				BIF_ARG_1, ERTS_PROC_LOCKS_ALL);
     if (!rp)
 	BIF_ERROR(BIF_P, BADARG);
-    hipe_print_heap(rp);
+    ret = hipe_print_heap(rp);
     proc_unlock(BIF_P, rp);
-    BIF_RET(am_true);
+    return mkatom(ret);
+}
+
+BIF_RETTYPE hipe_bifs_get_heap_eterm_2(BIF_ALIST_2)
+{
+    Eterm* ret;
+    Process *rp = erts_pid2proc(BIF_P, ERTS_PROC_LOCK_MAIN,
+                BIF_ARG_1, ERTS_PROC_LOCKS_ALL);
+    if (!rp)
+    BIF_ERROR(BIF_P, BADARG);
+    int index = (int)BIF_ARG_2 >> 4;
+    ret = hipe_get_heap_eterm(rp, index);
+    proc_unlock(BIF_P, rp);
+    return *ret;
 }
 
 BIF_RETTYPE hipe_bifs_show_nstack_1(BIF_ALIST_1)

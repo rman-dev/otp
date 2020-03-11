@@ -24,7 +24,7 @@
 #include "index.h"
 #include "erl_atom_table.h"
 
-#define MAX_ATOM_CHARACTERS 255
+#define MAX_ATOM_CHARACTERS 50000
 #define MAX_ATOM_SZ_FROM_LATIN1 (2*MAX_ATOM_CHARACTERS)
 #define MAX_ATOM_SZ_LIMIT (4*MAX_ATOM_CHARACTERS) /* theoretical byte limit */
 #define ATOM_LIMIT (1024*1024)

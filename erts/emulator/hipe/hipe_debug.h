@@ -24,7 +24,9 @@
 #define HIPE_DEBUG_H
 
 extern void hipe_print_estack(Process *p);
-extern void hipe_print_heap(Process *p);
+extern char* hipe_print_heap(Process *p);
+extern char* hipe_print_heap_char(Process *p);
+extern Eterm* hipe_get_heap_eterm(Process *p, int idx);
 extern void hipe_print_pcb(Process *p);
 
 #endif /* HIPE_DEBUG_H */

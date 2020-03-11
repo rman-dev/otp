@@ -27,7 +27,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <stddef.h>	/* offsetof() */
+#include <stddef.h> /* offsetof() */
 #include <stdio.h>
 #include <stdlib.h>
 #include "sys.h"
@@ -57,21 +57,21 @@ extern Uint beam_apply[];
 static void print_beam_pc(BeamInstr *pc)
 {
     if (pc == hipe_beam_pc_return) {
-	printf("return-to-native");
+    printf("return-to-native");
     } else if (pc == hipe_beam_pc_throw) {
-	printf("throw-to-native");
+    printf("throw-to-native");
     } else if (pc == &beam_apply[1]) {
-	printf("normal-process-exit");
+    printf("normal-process-exit");
     } else {
-	ErtsCodeMFA *cmfa = find_function_from_pc(pc);
-	if (cmfa) {
-	    fflush(stdout);
-	    erts_printf("%T:%T/%bpu + 0x%bpx",
-			cmfa->module, cmfa->function,
+    ErtsCodeMFA *cmfa = find_function_from_pc(pc);
+    if (cmfa) {
+        fflush(stdout);
+        erts_printf("%T:%T/%bpu + 0x%bpx",
+            cmfa->module, cmfa->function,
                         cmfa->arity,
                         pc - erts_codemfa_to_code(cmfa));
-	} else
-	    printf("?");
+    } else
+        printf("?");
     }
 }
 
@@ -79,9 +79,9 @@ static void catch_slot(Eterm *pos, Eterm val)
 {
     BeamInstr *pc = catch_pc(val);
     printf(" | 0x%0*lx | 0x%0*lx | CATCH 0x%0*lx (BEAM ",
-	   2*(int)sizeof(long), (unsigned long)pos,
-	   2*(int)sizeof(long), (unsigned long)val,
-	   2*(int)sizeof(long), (unsigned long)pc);
+       2*(int)sizeof(long), (unsigned long)pos,
+       2*(int)sizeof(long), (unsigned long)val,
+       2*(int)sizeof(long), (unsigned long)pc);
     print_beam_pc(pc);
     printf(")\r\n");
 }
@@ -90,8 +90,8 @@ static void print_beam_cp(Eterm *pos, Eterm val)
 {
     printf(" |%s|%s| BEAM ACTIVATION RECORD\r\n", dashes, dashes);
     printf(" | 0x%0*lx | 0x%0*lx | BEAM PC ",
-	   2*(int)sizeof(long), (unsigned long)pos,
-	   2*(int)sizeof(long), (unsigned long)val);
+       2*(int)sizeof(long), (unsigned long)pos,
+       2*(int)sizeof(long), (unsigned long)val);
     print_beam_pc(cp_val(val));
     printf("\r\n");
 }
@@ -106,23 +106,23 @@ static void print_catch(Eterm *pos, Eterm val)
 static void print_stack(Eterm *sp, Eterm *end)
 {
     printf(" | %*s | %*s |\r\n",
-	   2+2*(int)sizeof(long), "Address",
-	   2+2*(int)sizeof(long), "Contents");
+       2+2*(int)sizeof(long), "Address",
+       2+2*(int)sizeof(long), "Contents");
     while (sp < end) {
-	Eterm val = sp[0];
-	if (is_CP(val))
-	    print_beam_cp(sp, val);
-	else if (is_catch(val))
-	    print_catch(sp, val);
-	else {
-	    printf(" | 0x%0*lx | 0x%0*lx | ",
-		   2*(int)sizeof(long), (unsigned long)sp,
-		   2*(int)sizeof(long), (unsigned long)val);
-	    fflush(stdout);
-	    erts_printf("%.30T", val);
-	    printf("\r\n");
-	}
-	sp += 1;
+    Eterm val = sp[0];
+    if (is_CP(val))
+        print_beam_cp(sp, val);
+    else if (is_catch(val))
+        print_catch(sp, val);
+    else {
+        printf(" | 0x%0*lx | 0x%0*lx | ",
+           2*(int)sizeof(long), (unsigned long)sp,
+           2*(int)sizeof(long), (unsigned long)val);
+        fflush(stdout);
+        erts_printf("%.30T", val);
+        printf("\r\n");
+    }
+    sp += 1;
     }
     printf(" |%s|%s|\r\n", dashes, dashes);
 }
@@ -130,58 +130,168 @@ static void print_stack(Eterm *sp, Eterm *end)
 void hipe_print_estack(Process *p)
 {
     printf(" | %*s BEAM   STACK %*s |\r\n",
-	   2*(int)sizeof(long)-3, "",
-	   2*(int)sizeof(long)-4, "");
+       2*(int)sizeof(long)-3, "",
+       2*(int)sizeof(long)-4, "");
     print_stack(p->stop, STACK_START(p));
 }
 
-static char* print_heap(Eterm *pos, Eterm *end)
-{
-    char* position = (char*)malloc(sizeof(char)*100000);
-	int offset;
+// static void print_heap(Eterm *pos, Eterm *end)
+// {
+//     printf("From: 0x%0*lx to 0x%0*lx\n\r",
+//        2*(int)sizeof(long), (unsigned long)pos,
+//        2*(int)sizeof(long), (unsigned long)end);
+//     printf(" | %*s H E A P %*s |\r\n",
+//        2*(int)sizeof(long)-1, "",
+//        2*(int)sizeof(long)-1, "");
+//     printf(" | %*s | %*s |\r\n",
+//        2+2*(int)sizeof(long), "Address",
+//        2+2*(int)sizeof(long), "Contents");
+//     printf(" |%s|%s|\r\n", dashes, dashes);
+//     while (pos < end) {
+//     Eterm val = pos[0];
+//     printf(" | 0x%0*lx | 0x%0*lx | ",
+//            2*(int)sizeof(long), (unsigned long)pos,
+//            2*(int)sizeof(long), (unsigned long)val);
+//     ++pos;
+//     if (is_arity_value(val))
+//         printf("Arity(%lu)", arityval(val));
+//     else if (is_thing(val)) {
+//         unsigned int ari = thing_arityval(val);
+//         printf("Thing Arity(%u) Tag(%lu)", ari, thing_subtag(val));
+//         while (ari) {
+//         printf("\r\n | 0x%0*lx | 0x%0*lx | THING",
+//                2*(int)sizeof(long), (unsigned long)pos,
+//                2*(int)sizeof(long), (unsigned long)*pos);
+//         ++pos;
+//         --ari;
+//         }
+//     } else {
+//         fflush(stdout);
+//         erts_printf("%.30T", val);
+//     }
+//     printf("\r\n");
+//     }
+//     printf(" |%s|%s|\r\n", dashes, dashes);
+// }
 
-	offset = snprintf(position, 100000, "From: 0x%0*lx to 0x%0*lx\n\r",
-		2 * (int)sizeof(long), (unsigned long)pos,
-		2 * (int)sizeof(long), (unsigned long)end);
-	offset += snprintf(position + offset, 100000 - offset, " | %*s H E A P %*s |\r\n",
-		2 * (int)sizeof(long) - 1, "",
-		2 * (int)sizeof(long) - 1, "");
-	offset += snprintf(position + offset, 100000 - offset, " | %*s | %*s |\r\n",
-		2 + 2 * (int)sizeof(long), "Address",
-		2 + 2 * (int)sizeof(long), "Contents");
-	offset += snprintf(position + offset, 100000 - offset, " |%s|%s|\r\n", dashes, dashes);
-	while (pos < end) {
-		Eterm val = pos[0];
-		offset += snprintf(position + offset, 100000 - offset, " | 0x%0*lx | 0x%0*lx | ",
-			2 * (int)sizeof(long), (unsigned long)pos,
-			2 * (int)sizeof(long), (unsigned long)val);
-		++pos;
-		if (is_arity_value(val))
-			offset += snprintf(position + offset, 100000 - offset, "Arity(%lu)", arityval(val));
-		else if (is_thing(val)) {
-			unsigned int ari = thing_arityval(val);
-			offset += snprintf(position + offset, 100000 - offset, "Thing Arity(%u) Tag(%lu)", ari, thing_subtag(val));
-			while (ari) {
-				offset += snprintf(position + offset, 100000 - offset, "\r\n | 0x%0*lx | 0x%0*lx | THING",
-					2 * (int)sizeof(long), (unsigned long)pos,
-					2 * (int)sizeof(long), (unsigned long)*pos);
-				++pos;
-				--ari;
-			}
-		}
-		else {
-			fflush(stdout);
-			erts_printf("%.30T", val);
-		}
-		offset += snprintf(position + offset, 100000 - offset, "\r\n");
-	}
-	snprintf(position + offset, 100000 - offset, " |%s|%s|\r\n", dashes, dashes);
-	return position;
+static char* print_heap_char(Eterm *pos, Eterm *end)
+{
+
+    char* position = (char*)malloc(sizeof(char)*100000);
+    int offset;
+
+    offset = snprintf(position, 100000, "From: 0x%0*lx to 0x%0*lx\n\r",
+        2 * (int)sizeof(long), (unsigned long)pos,
+        2 * (int)sizeof(long), (unsigned long)end);
+    offset += snprintf(position + offset, 100000 - offset, " | %*s H E A P %*s |\r\n",
+        2 * (int)sizeof(long) - 1, "",
+        2 * (int)sizeof(long) - 1, "");
+    offset += snprintf(position + offset, 100000 - offset, " | %*s | %*s |\r\n",
+        2 + 2 * (int)sizeof(long), "Address",
+        2 + 2 * (int)sizeof(long), "Contents");
+    offset += snprintf(position + offset, 100000 - offset, " |%s|%s|\r\n", dashes, dashes);
+    while (pos < end) {
+        Eterm val = pos[0];   
+        offset += snprintf(position + offset, 100000 - offset, " | 0x%0*lx | 0x%0*lx | ",
+            2 * (int)sizeof(long), (unsigned long)pos,
+            2 * (int)sizeof(long), (unsigned long)val);
+        ++pos;
+        if (is_arity_value(val))
+            offset += snprintf(position + offset, 100000 - offset, "Arity(%lu)", arityval(val));
+        else if (is_thing(val)) {
+            unsigned int ari = thing_arityval(val);
+            offset += snprintf(position + offset, 100000 - offset, "Thing Arity(%u) Tag(%lu)", ari, thing_subtag(val));
+            while (ari) {
+                offset += snprintf(position + offset, 100000 - offset, "\r\n | 0x%0*lx | 0x%0*lx | THING",
+                    2 * (int)sizeof(long), (unsigned long)pos,
+                    2 * (int)sizeof(long), (unsigned long)*pos);
+                ++pos;
+                --ari;
+            }
+        }
+        else {
+            fflush(stdout);
+            erts_printf("%.30T", val);
+        }
+        offset += snprintf(position + offset, 100000 - offset, "\r\n");
+    }
+    printf("changed function: this functions returns result as you want-test!\n");
+    offset += snprintf(position + offset, 100000 - offset, " |%s|%s|\r\n", dashes, dashes);
+    return position;
 }
 
-void hipe_print_heap(Process *p)
+static char* print_heap(Process *p, Eterm *pos, Eterm *end)
 {
-    print_heap(p->heap, p->htop);
+    
+
+    char* position = (char*)malloc(sizeof(char)*100000);
+    int offset = 0;
+    int flag = 0;
+
+    offset = snprintf(position, 100000, "{");
+    while (pos < end) {
+        Eterm val = pos[0];  
+        if( flag == 0)
+            flag = 1;
+        else
+            offset += snprintf(position + offset, 100000 - offset, ",");
+        offset += snprintf(position + offset, 100000 - offset, " { \"0x%0*lx\", \"0x%0*lx\"",
+            2 * (int)sizeof(long), (unsigned long)pos,
+            2 * (int)sizeof(long), (unsigned long)val);
+        ++pos;
+        if (is_arity_value(val))
+        { 
+            offset += snprintf(position + offset, 100000 - offset, ", arity_value ");
+        }
+        else if (is_thing(val)) {
+            unsigned int ari = thing_arityval(val);
+            while (ari) {
+                ++pos;
+                --ari;
+            }
+            offset += snprintf(position + offset, 100000 - offset, ", thing ");
+        }
+        else {
+            fflush(stdout);
+            erts_printf("%.30T", val);
+            offset += snprintf(position + offset, 100000 - offset, ", other ");
+        }
+        offset += snprintf(position + offset, 100000 - offset, ", %d } ", sizeof(val));
+    }
+    printf("changed function: this functions returns result as you want-test!\n");
+    offset += snprintf(position + offset, 100000 - offset, "}.");
+    return position;
+}
+
+static Eterm* get_heap_eterm(Eterm *pos, Eterm *end, int idx)
+{
+    int count = 0;
+    Eterm* ret = (Eterm*)malloc(sizeof(Eterm));
+
+    while (pos < end) {
+        Eterm val = pos[count];
+        if(count == idx) {
+            *ret = val;
+            return ret;
+        }
+        count ++;
+    }
+    return NULL;
+}
+
+char* hipe_print_heap_char(Process *p)
+{
+    return print_heap_char(p->heap, p->htop);    
+}
+
+char* hipe_print_heap(Process *p)
+{
+    return print_heap(p, p->heap, p->htop);    
+}
+
+Eterm* hipe_get_heap_eterm(Process *p, int idx)
+{
+    return get_heap_eterm(p->heap, p->htop, idx);
 }
 
 void hipe_print_pcb(Process *p)
@@ -255,7 +365,7 @@ void hipe_print_pcb(Process *p)
     U("nstend     ", hipe.nstend);
     U("ncallee    ", hipe.u.ncallee);
     hipe_arch_print_pcb(&p->hipe);
-#endif	/* HIPE */
+#endif  /* HIPE */
 #undef U
 #undef P
     printf("%.*s\r\n",
